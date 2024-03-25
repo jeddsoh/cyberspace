@@ -16,7 +16,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createIssueSchema } from "../validationSchemas"
 import { z } from "zod"
-import { useRouter } from "next/navigation"
 
 type IssueForm = z.infer<typeof createIssueSchema>
 
@@ -27,6 +26,7 @@ export default function NewIssue() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { isValid, errors },
   } = useForm<IssueForm>({
     resolver: zodResolver(createIssueSchema),
@@ -34,6 +34,7 @@ export default function NewIssue() {
   const [error, setError] = useState("")
   const postToAPI = async (data) => {
     try {
+      setIsSubmitting(true)
       const response = await fetch("api/issues", {
         method: "POST",
         headers: {
@@ -43,13 +44,17 @@ export default function NewIssue() {
       })
       if (!response.ok) {
         throw new Error("Network response was not ok")
-      } else {
-        onClose()
       }
+      reset()
+      setIsSubmitting(false)
+      onClose()
     } catch (error) {
+      setIsSubmitting(false)
       setError(`${error}`)
     }
   }
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   return (
     <>
@@ -83,7 +88,7 @@ export default function NewIssue() {
                     labelPlacement="inside"
                     {...register("title")}
                     isInvalid={Boolean(errors.title)}
-                    errorMessage={errors.title ? errors.title.message : null}
+                    errorMessage={errors.title?.message}
                   ></Input>
 
                   <Textarea
@@ -93,19 +98,20 @@ export default function NewIssue() {
                     labelPlacement="inside"
                     {...register("description")}
                     isInvalid={Boolean(errors.description)}
-                    errorMessage={errors.description ? errors.description.message : null}
+                    errorMessage={errors.description?.message}
                   />
                 </ModalBody>
                 <ModalFooter>
-                  <Button variant="light" onPress={onClose}>
+                  {isSubmitting ? null :<Button variant="light" onPress={onClose}>
                     Close
-                  </Button>
+                  </Button>}
                   <Button
-                    variant="flat"
+                    isLoading={isSubmitting}
+                    variant="solid"
                     color="primary"
                     type="submit"
                   >
-                    Create Issue
+                    {isSubmitting ? "Creating" : "Create Issue"}
                   </Button>
                 </ModalFooter>
               </form>
